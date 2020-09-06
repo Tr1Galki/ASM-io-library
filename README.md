@@ -9,7 +9,7 @@ Assignment #1: Input/Output library in assembly
 
 # Подготовка
 
-* Прочитайте первые две главы учебника [^1]
+* Прочитайте первые две главы "Low-level programming: C, assembly and program execution".
 
 * Ознакомьтесь с [документацией на следующие инструкции](http://77.234.220.100:4813/low-level-programming/classes/-/blob/master/docs/intel-manual.pdf).
 
@@ -49,5 +49,3 @@ Assignment #1: Input/Output library in assembly
 
 Код решения занимает порядка 250 строк
 
-
-[^1]: "Low-level programming: C, assembly and program execution"
