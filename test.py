@@ -442,7 +442,7 @@ inputs= {'string_length'
          'read_word'            
          : ['-1'], # , '-1234asdasd5234121', '', '   ', '\t   ', 'hey ya ye ya', 'hello world' ],
          'read_word_length'     
-         : ['-1', '-1234asdasd5234121', '', '   ', '\t   ', 'hey ya ye ya', 'hello world' ],
+         : ['-1', '-1234asdasd5234121', '', '   ', '\t   ', '\t   123', 'hey ya ye ya', 'hello world' ],
          'read_word_too_long'     
          : [ 'asdbaskdbaksvbaskvhbashvbasdasdads wewe', 'short' ],
          'parse_uint'           
