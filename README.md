@@ -9,7 +9,7 @@
 
 * Прочитайте первые две главы "Low-level programming: C, assembly and program execution".
 
-* Ознакомьтесь с [документацией на следующие инструкции](http://77.234.220.100:4813/low-level-programming/classes/-/blob/master/docs/intel-manual.pdf).
+* Ознакомьтесь с [документацией на следующие инструкции](https://gitlab.se.ifmo.ru/low-level-programming/classes/-/blob/master/docs/intel-manual.pdf).
 
   - `xor`
   - `jmp`, `ja` и другими командами условного перехода
@@ -30,7 +30,7 @@
 - Используйте `test.py` чтобы протестировать работу. 
 
 
-В [материалах к первой практике](http://77.234.220.100:4813//low-level-programming/classes/-/tree/master/practice-1) есть базовая инструкция по использованию `gdb`, благодаря которой вы можете исполнять программу по шагам; `test.py` будет генерировать исполняемый файл с тестом для каждой функции, и вы можете отладить его; также см. Appendix A в "Low-level programming: C, assembly and program execution".
+В [материалах к первой практике](https://gitlab.se.ifmo.ru/low-level-programming/classes/-/tree/master/practice-1) есть базовая инструкция по использованию `gdb`, благодаря которой вы можете исполнять программу по шагам; `test.py` будет генерировать исполняемый файл с тестом для каждой функции, и вы можете отладить его; также см. Appendix A в "Low-level programming: C, assembly and program execution".
  
 # Список распространённых ошибок
 
