@@ -472,6 +472,6 @@ if __name__ == "__main__":
                     print '* [ ', colored('fail', 'red'),  '] with exception' , sys.exc_info()[0]
                     found_error = True
     if found_error:
-        print 'Not all tests have been passed'
+        sys.exit('Not all tests have been passed')
     else:
         print colored( "Good work, all tests are passed", 'green')
