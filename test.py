@@ -44,6 +44,8 @@ def compile( fname, text ):
     f.write( text )
     f.close()
 
+    subprocess.call( ['nasm', '--version'] )
+
     if subprocess.call( ['nasm', '-f', 'elf64', fname + '.asm', '-o', fname+'.o'] ) == 0 and subprocess.call( ['ld', '-o' , fname, fname+'.o'] ) == 0:
              print ' ', fname, ': compiled'
              return True
@@ -470,6 +472,7 @@ if __name__ == "__main__":
                         found_error = True
                 except:
                     print '* [ ', colored('fail', 'red'),  '] with exception' , sys.exc_info()[0]
+                    raise
                     found_error = True
     if found_error:
         sys.exit('Not all tests have been passed')
