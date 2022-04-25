@@ -5,6 +5,7 @@ __unittest = True
 import subprocess
 import re
 import unittest
+import xmlrunner
 from subprocess import CalledProcessError, Popen, PIPE
 
 #-------helpers---------------
@@ -538,4 +539,5 @@ _start:
 
 
 if __name__ == "__main__":
-    unittest.main()
+    with open('report.xml', 'w') as report:
+        unittest.main(testRunner=xmlrunner.XMLTestRunner(output=report), failfast=False, buffer=False, catchbreak=False)
