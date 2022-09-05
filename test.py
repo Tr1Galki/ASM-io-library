@@ -1,12 +1,12 @@
 #!/usr/bin/python2
 
-import os
+__unittest = True
+
 import subprocess
-import sys
 import re
-import sys
+import unittest
+import xmlrunner
 from subprocess import CalledProcessError, Popen, PIPE
-from termcolor import colored
 
 #-------helpers---------------
 
@@ -38,60 +38,6 @@ def first_or_empty( s ):
         return sp[0]
 
 #-----------------------------
-
-def compile( fname, text ):
-    f = open( fname + '.asm', 'w')
-    f.write( text )
-    f.close()
-
-    subprocess.call( ['nasm', '--version'] )
-
-    if subprocess.call( ['nasm', '-f', 'elf64', fname + '.asm', '-o', fname+'.o'] ) == 0 and subprocess.call( ['ld', '-o' , fname, fname+'.o'] ) == 0:
-             print ' ', fname, ': compiled'
-             return True
-    else: 
-        print ' ', fname, ': failed to compile'
-        return False
-
-
-def launch( fname, seed = '' ):
-    output = ''
-    try:
-        p = Popen(['./'+fname], shell=None, stdin=PIPE, stdout=PIPE)
-        (output, err) = p.communicate(input=seed)
-        return (output, p.returncode)
-    except CalledProcessError as exc:
-        return (exc.output, exc.returncode)
-    else:
-        return (output, 0)
-
-
-
-def test_asm( text, name = 'dummy',  seed = '' ):
-    if compile( name, text ):
-        r = launch( name, seed )
-        #os.remove( name )
-        #os.remove( name + '.o' )
-        #os.remove( name + '.asm' )
-        return r 
-    return None 
-
-class Test:
-    name = ''
-    string = lambda x : x
-    checker = lambda input, output, code : False
-
-    def __init__(self, name, stringctor, checker):
-        self.checker = checker
-        self.string = stringctor
-        self.name = name
-    def perform(self, arg):
-        res = test_asm( self.string(arg), self.name, arg)
-        if res is None:
-            return False
-        (output, code) = res
-        print '"', arg,'" ->',  res
-        return self.checker( arg, output, code )
 
 before_call="""
 mov rdi, -1
@@ -147,334 +93,451 @@ err_calling_convention: db "You did not respect the calling convention! Check th
 section .text
 continue:
 """
-tests=[ Test('string_length',
-             lambda v : """section .data
-        str: db '""" + v + """', 0
-        section .text
-        %include "lib.inc"
-        global _start
-        _start:
-        """ + before_call + """
-        mov rdi, str
-        call string_length
-        """ + after_call + """
-        mov rdi, rax
-        mov rax, 60
-        syscall""",
-        lambda i, o, r: r == len(i)
-         ),
 
-        Test('print_string',
-             lambda v : """section .data
-        str: db '""" + v + """', 0
-        section .text
-        %include "lib.inc"
-        global _start 
-        _start:
-        """ + before_call + """
-        mov rdi, str
-        call print_string
-        """ + after_call + """
+class IOLibraryTest(unittest.TestCase):
+    def compile(self, fname, text):
+        f = open( fname + '.asm', 'w')
+        f.write( text )
+        f.close()
 
-        mov rax, 60
-        xor rdi, rdi
-        syscall""", 
-        lambda i,o,r: i == o),
+        self.assertEqual(subprocess.call( ['nasm', '-f', 'elf64', fname + '.asm', '-o', fname+'.o'] ), 0, 'failed to compile')
+        self.assertEqual(subprocess.call( ['ld', '-o' , fname, fname+'.o'] ), 0, 'failed to link')
 
-        Test('string_copy',
-            lambda v: """
-        section .data
-        arg1: db '""" + v + """', 0
-        arg2: times """ + str(len(v) + 1) +  """ db  66
-        section .text
-        %include "lib.inc"
-        global _start 
-        _start:
-        """ + before_call + """
-        mov rdi, arg1
-        mov rsi, arg2
-        mov rdx, """ + str(len(v) + 1) + """
-        call string_copy
+    def launch(self, fname, input):
+        output = ''
+        try:
+            p = Popen(['./'+fname], shell=None, stdin=PIPE, stdout=PIPE)
+            (output, _) = p.communicate(input)
+            return (output, p.returncode)
+        except CalledProcessError as exc:
+            return (exc.output, exc.returncode)
 
-        """ + after_call + """
-        mov rdi, arg2 
-        call print_string
-        mov rax, 60
-        xor rdi, rdi
-        syscall""", 
-        lambda i,o,r: i == o),
-
-        Test('print_char',
-            lambda v:""" section .text
-        %include "lib.inc"
-        global _start 
-        _start:
-        """ + before_call + """
-        mov rdi, '""" + v + """'
-        call print_char
-        """ + after_call + """
-        mov rax, 60
-        xor rdi, rdi
-        syscall""", 
-        lambda i,o,r: i == o),
-
-        Test('print_uint',
-            lambda v: """section .text
-        %include "lib.inc"
-        global _start 
-        _start:
-        """ + before_call + """
-        mov rdi, """ + v + """
-        call print_uint
-        """ + after_call + """
-        mov rax, 60
-        xor rdi, rdi
-        syscall""", 
-        lambda i, o, r: o == str(unsigned_reinterpret(int(i)))),
-        
-        Test('print_int',
-            lambda v: """section .text
-        %include "lib.inc"
-        global _start 
-        _start:
-        """ + before_call + """
-        mov rdi, """ + v + """
-        call print_int
-        """ + after_call + """
-        mov rax, 60
-        xor rdi, rdi
-        syscall""", 
-        lambda i, o, r: o == i),
-
-        Test('read_char',
-             lambda v:"""section .text
-        %include "lib.inc"
-        global _start 
-        _start:
-        """ + before_call + """
-        call read_char
-        """ + after_call + """
-        mov rdi, rax
-        mov rax, 60
-        syscall""", 
-        lambda i, o, r: (i == "" and r == 0 ) or ord( i[0] ) == r ),
-
-        Test('read_word',
-             lambda v:"""
-        section .data
-        word_buf: times 20 db 0xca
-        section .text
-        %include "lib.inc"
-        global _start 
-        _start:
-        """ + before_call + """
-        mov rdi, word_buf
-        mov rsi, 20 
-        call read_word
-        """ + after_call + """
-        mov rdi, rax
-        call print_string
-
-        mov rax, 60
-        xor rdi, rdi
-        syscall""", 
-        lambda i, o, r: first_or_empty(i) == o),
-
-        Test('read_word_length',
-             lambda v:"""
-        section .data
-        word_buf: times 20 db 0xca
-        section .text
-        %include "lib.inc"
-        global _start 
-        _start:
-        """ + before_call + """
-        mov rdi, word_buf
-        mov rsi, 20 
-        call read_word
-        """ + after_call + """
-
-        mov rax, 60
-        mov rdi, rdx
-        syscall""", 
-        lambda i, o, r: len(first_or_empty(i)) == r or len(first_or_empty(i)) > 19),
-
-        Test('read_word_too_long',
-             lambda v:"""
-        section .data
-        word_buf: times 20 db 0xca
-        section .text
-        %include "lib.inc"
-        global _start 
-        _start:
-        """ + before_call + """
-        mov rdi, word_buf
-        mov rsi, 20 
-        call read_word
-        """ + after_call + """
-
-        mov rdi, rax
-        mov rax, 60
-        syscall""", 
-        lambda i, o, r: ( (not len(first_or_empty(i)) > 19) and r != 0 ) or  r == 0 ),
-
-        Test('parse_uint',
-             lambda v: """section .data
-        input: db '""" + v  + """', 0
-        section .text
-        %include "lib.inc"
-        global _start 
-        _start:
-        """ + before_call + """
-        mov rdi, input
-        call parse_uint
-        """ + after_call + """
-        push rdx
-        mov rdi, rax
-        call print_uint
-        mov rax, 60
-        pop rdi
-        syscall""", 
-        lambda i,o,r:  starts_uint(i)[0] == int(o) and r == starts_uint( i )[1]),
-        
-        Test('parse_int',
-             lambda v: """section .data
-        input: db '""" + v  + """', 0
-        section .text
-        %include "lib.inc"
-        global _start 
-        _start:
-        """ + before_call + """
-        mov rdi, input
-        call parse_int
-        """ + after_call + """
-        push rdx
-        mov rdi, rax
-        call print_int
-        pop rdi
-        mov rax, 60
-        syscall""", 
-        lambda i,o,r: (starts_int( i )[1] == 0 and int(o) == 0) or (starts_int(i)[0] == int(o) and r == starts_int( i )[1] )),
-
-        Test('string_equals',
-             lambda v: """section .data
-             str1: db '""" + v + """',0
-             str2: db '""" + v + """',0
-        section .text
-        %include "lib.inc"
-        global _start
-        _start:
-        """ + before_call + """
-        mov rdi, str1
-        mov rsi, str2
-        call string_equals
-        """ + after_call + """
-        mov rdi, rax
-        mov rax, 60
-        syscall""",
-        lambda i,o,r: r == 1),
- 
-        Test('string_equals not equals',
-             lambda v: """section .data
-             str1: db '""" + v + """',0
-             str2: db '""" + v + """!!',0
-        section .text
-        %include "lib.inc"
-        global _start
-        _start:
-        """ + before_call + """
-        mov rdi, str1
-        mov rsi, str2
-        call string_equals
-        """ + after_call + """
-        mov rdi, rax
-        mov rax, 60
-        syscall""",
-        lambda i,o,r: r == 0),
-
-        Test('string_copy_too_long',
-            lambda v: """
-            section .rodata
-            err_too_long_msg: db "string is too long", 10, 0
-            section .data
-        arg1: db '""" + v + """', 0
-        arg2: times """ + str(len(v)/2)  +  """ db  66
-        section .text
-        %include "lib.inc"
-        global _start 
-        _start:
-        """ + before_call + """
-        mov rdi, arg1
-        mov rsi, arg2
-        mov rdx, """ + str(len(v)/2 ) + """
-        call string_copy
-        test rax, rax
-        jnz .good
-        mov rdi, err_too_long_msg 
-        call print_string
-        jmp _exit
-        .good:
-        """ + after_call + """
-        mov rdi, arg2 
-        call print_string
-        _exit:
-        mov rax, 60
-        xor rdi, rdi
-        syscall""", 
-        lambda i,o,r: o.find("too long") != -1 ) 
-        ]
+    def perform(self, fname, text, input):
+        self.compile(fname, text)
+        return self.launch(fname, input)
 
 
-inputs= {'string_length' 
-        : [ 'asdkbasdka', 'qwe qweqe qe', ''],
-         'print_string'  
-         : ['ashdb asdhabs dahb', ' ', ''],
-         'string_copy'   
-         : ['ashdb asdhabs dahb', ' ', ''],
-         'string_copy_too_long'   
-         : ['ashdb asdhabs dahb', ' ', ''],
-         'print_char'    
-         : "a c",
-         'print_uint'    
-         : ['-1', '12345234121', '0', '12312312', '123123'],
-         'print_int'     
-         : ['-1', '-12345234121', '0', '123412312', '123123'],
-         'read_char'            
-         : ['-1', '-1234asdasd5234121', '', '   ', '\t   ', 'hey ya ye ya', 'hello world' ],
-         'read_word'            
-         : ['-1'], # , '-1234asdasd5234121', '', '   ', '\t   ', 'hey ya ye ya', 'hello world' ],
-         'read_word_length'     
-         : ['-1', '-1234asdasd5234121', '', '   ', '\t   ', '\t   123', 'hey ya ye ya', 'hello world' ],
-         'read_word_too_long'     
-         : [ 'asdbaskdbaksvbaskvhbashvbasdasdads wewe', 'short' ],
-         'parse_uint'           
-         : ["0", "1234567890987654321hehehey", "1" ],
-         'parse_int'                
-         : ["0", "1234567890987654321hehehey", "-1dasda", "-eedea", "-123123123", "1" ],
-         'string_equals'            
-         : ['ashdb asdhabs dahb', ' ', '', "asd" ],
-         'string_equals not equals' 
-         : ['ashdb asdhabs dahb', ' ', '', "asd" ]
-}
-              
+
+    def test_string_length(self):
+        inputs = ['asdkbasdka', 'qwe qweqe qe', '']
+        for input in inputs:
+            text = """
+section .data
+str: db '""" + input + """', 0
+
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, str
+    call string_length
+    """ + after_call + """
+    mov rdi, rax
+    mov rax, 60
+    syscall
+"""
+            (output, code) = self.perform('string_length', text, input)
+            self.assertEqual(code, len(input), 'string_length(%s) returned wrong length: %d' % (repr(input), code))
+
+
+
+    def test_print_string(self):
+        inputs = ['ashdb asdhabs dahb', ' ', '']
+        for input in inputs:
+            text = """
+section .data
+str: db '""" + input + """', 0
+
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, str
+    call print_string
+    """ + after_call + """
+    xor rdi, rdi
+    mov rax, 60
+    syscall
+"""
+            (output, code) = self.perform('print_string', text, input)
+            self.assertEqual(output, input, 'print_string(%s) printed wrong string: %s' % (repr(input), repr(output)))
+
+
+
+    def test_string_copy(self):
+        inputs = ['ashdb asdhabs dahb', ' ', '']
+        for input in inputs:
+            text = """
+section .data
+arg1: db '""" + input + """', 0
+arg2: times """ + str(len(input) + 1) +  """ db  66
+
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, arg1
+    mov rsi, arg2
+    mov rdx, """ + str(len(input) + 1) + """
+    call string_copy
+
+    """ + after_call + """
+    mov rdi, arg2 
+    call print_string
+    mov rax, 60
+    xor rdi, rdi
+    syscall
+"""
+            (output, code) = self.perform('string_copy', text, input)
+            self.assertEqual(output, input, 'string_copy(%s) put wrong string into buffer: %s' % (repr(input), repr(output)))
+
+
+
+    def test_string_copy_too_long(self):
+        inputs = ['ashdb asdhabs dahb', ' ', '']
+        for input in inputs:
+            text = """
+section .rodata
+err_too_long_msg: db "string is too long", 10, 0
+
+section .data
+arg1: db '""" + input + """', 0
+arg2: times """ + str(len(input)/2) +  """ db  66
+
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, arg1
+    mov rsi, arg2
+    mov rdx, """ + str(len(input)/2) + """
+    call string_copy
+    test rax, rax
+    jnz .good
+    mov rdi, err_too_long_msg 
+    call print_string
+    jmp _exit
+    .good:
+    """ + after_call + """
+    mov rdi, arg2 
+    call print_string
+_exit:
+    mov rax, 60
+    xor rdi, rdi
+    syscall
+"""
+            (output, code) = self.perform('string_copy_too_long', text, input)
+            self.assertNotEqual(output.find('too long'), -1, 'string_copy(%s) should have failed, but returned: %s' % (repr(input), repr(output)))
+
+
+
+    def test_print_char(self):
+        inputs = ['a', ' ', 'c']
+        for input in inputs:
+            text = """
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, '""" + input + """'
+    call print_char
+    """ + after_call + """
+    mov rax, 60
+    xor rdi, rdi
+    syscall
+"""
+            (output, code) = self.perform('print_char', text, input)
+            self.assertEqual(output, input, 'print_char(%s) printed wrong char: %s' % (repr(input), repr(output)))
+
+
+
+    def test_print_uint(self):
+        inputs = ['-1', '12345234121', '0', '12312312', '123123']
+        for input in inputs:
+            text = """
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, """ + input + """
+    call print_uint
+    """ + after_call + """
+    mov rax, 60
+    xor rdi, rdi
+    syscall
+"""
+            (output, code) = self.perform('print_uint', text, input)
+            uinput = str(unsigned_reinterpret(int(input)))
+            self.assertEqual(output, uinput, 'print_uint(%s) printed wrong number: %s, expected: %s' % (repr(input), repr(output), repr(uinput)))
+
+
+
+    def test_print_int(self):
+        inputs = ['-1', '-12345234121', '0', '123412312', '123123']
+        for input in inputs:
+            text = """
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, """ + input + """
+    call print_int
+    """ + after_call + """
+    mov rax, 60
+    xor rdi, rdi
+    syscall
+"""
+            (output, code) = self.perform('print_int', text, input)
+            self.assertEqual(output, input, 'print_int(%s) printed wrong number: %s' % (repr(input), repr(output)))
+
+
+
+    def test_read_char(self):
+        inputs = ['-1', '-1234asdasd5234121', '', '   ', '\t   ', 'hey ya ye ya', 'hello world' ]
+        for input in inputs:
+            text = """
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    call read_char
+    """ + after_call + """
+    mov rdi, rax
+    mov rax, 60
+    syscall
+"""
+            (output, code) = self.perform('read_char', text, input)
+            if input == "":
+                self.assertEqual(code, 0, 'read_char with empty input should return 0')
+            else:
+                self.assertEqual(code, ord(input[0]), 'read_char(%d) returned incorrect char: %d' % (ord(input[0]), code))
+
+
+
+    def test_read_word(self):
+        inputs = ['-1'] # , '-1234asdasd5234121', '', '   ', '\t   ', 'hey ya ye ya', 'hello world' ],
+
+        for input in inputs:
+            text = """
+section .data
+word_buf: times 20 db 0xca
+
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, word_buf
+    mov rsi, 20 
+    call read_word
+    """ + after_call + """
+    mov rdi, rax
+    call print_string
+
+    mov rax, 60
+    xor rdi, rdi
+    syscall
+"""
+            (output, code) = self.perform('read_word', text, input)
+            input_word = first_or_empty(input)
+            self.assertEqual(output, input_word, 'read_word(%s) put incorrect word in the buffer: %s, expected: %s' % (repr(input), repr(output), repr(input_word)))
+
+
+
+    def test_read_word_length(self):
+        inputs = ['-1', '-1234asdasd5234121', '', '   ', '\t   ', '\t   123', 'hey ya ye ya', 'hello world' ]
+        for input in inputs:
+            text = """
+section .data
+word_buf: times 20 db 0xca
+
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, word_buf
+    mov rsi, 20 
+    call read_word
+    """ + after_call + """
+    mov rax, 60
+    mov rdi, rdx
+    syscall
+"""
+            (output, code) = self.perform('read_word_length', text, input)
+            input_word = first_or_empty(input)
+            self.assertEqual(code, len(input_word), 'read_word(%s) returned incorrect length: %d, expected: %d' % (repr(input), code, len(input_word)))
+
+
+
+    def test_read_word_too_long(self):
+        inputs = [ 'asdbaskdbaksvbaskvhbashvbasdasdads wewe', 'short' ]
+        for input in inputs:
+            text = """
+section .data
+stub: times 5 db 0xca
+word_buf: times 20 db 0xca
+
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, word_buf
+    mov rsi, 20 
+    call read_word
+    """ + after_call + """
+    mov rdi, rax
+    mov rax, 60
+    syscall
+"""
+            (output, code) = self.perform('read_word_too_long', text, input)
+            input_word = first_or_empty(input)
+            if len(input_word) > 19:
+                self.assertEqual(code, 0, 'read_word(%s) overflows buffer, but does not fail' % repr(input))
+            else:
+                self.assertNotEqual(code, 0, 'read_word(%s) does not overflow buffer, but fails' % repr(input))
+
+
+
+    def test_parse_uint(self):
+        inputs = ["0", "1234567890987654321hehehey", "1" ]
+        for input in inputs:
+            text = """
+section .data
+input: db '""" + input  + """', 0
+
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, input
+    call parse_uint
+    """ + after_call + """
+    push rdx
+    mov rdi, rax
+    call print_uint
+    mov rax, 60
+    pop rdi
+    syscall
+"""
+            (output, code) = self.perform('parse_uint', text, input)
+            (input_num, input_len) = starts_uint(input)
+
+            self.assertEqual(output, str(input_num), 'parse_uint(%s) parsed wrong number: %s, expected: %s' % (repr(input), repr(output), repr(str(input_num))))
+            self.assertEqual(code, input_len, 'parse_uint(%s) returned wrong length: %d, expected: %d' % (repr(input), code, input_len))
+
+
+
+    def test_parse_int(self):
+        inputs = ["0", "1234567890987654321hehehey", "-1dasda", "-eedea", "-123123123", "1" ]
+        for input in inputs:
+            text = """
+section .data
+input: db '""" + input  + """', 0
+
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, input
+    call parse_int
+    """ + after_call + """
+    push rdx
+    mov rdi, rax
+    call print_int
+    mov rax, 60
+    pop rdi
+    syscall
+"""
+            (output, code) = self.perform('parse_int', text, input)
+            (input_num, input_len) = starts_int(input)
+
+            if input_len == 0:
+                self.assertEqual(output, '0', 'parse_int(%s) should have failed, but parsed %s' % (repr(input), output))
+            else:
+                self.assertEqual(output, str(input_num), 'parse_int(%s) parsed wrong number: %s, expected: %s' % (repr(input), repr(output), repr(str(input_num))))
+                self.assertEqual(code, input_len, 'parse_int(%s) returned wrong length: %d, expected: %d' % (repr(input), code, input_len))
+
+
+
+    def test_string_equals(self):
+        inputs = ['ashdb asdhabs dahb', ' ', '', "asd" ]
+        for input in inputs:
+            text = """
+section .data
+str1: db '""" + input + """',0
+str2: db '""" + input + """',0
+
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, str1
+    mov rsi, str2
+    call string_equals
+    """ + after_call + """
+    mov rdi, rax
+    mov rax, 60
+    syscall
+"""
+            (output, code) = self.perform('string_equals', text, input)
+            self.assertEqual(code, 1, 'string_equals(%s, %s) should return 1' % (repr(input), repr(input)))
+
+
+
+    def test_string_not_equals(self):
+        inputs = ['ashdb asdhabs dahb', ' ', '', "asd" ]
+        for input in inputs:
+            text = """
+section .data
+str1: db '""" + input + """',0
+str2: db '""" + input + """!!',0
+
+section .text
+
+%include "lib.inc"
+global _start
+_start:
+    """ + before_call + """
+    mov rdi, str1
+    mov rsi, str2
+    call string_equals
+    """ + after_call + """
+    mov rdi, rax
+    mov rax, 60
+    syscall
+"""
+            (output, code) = self.perform('string_not_equals', text, input)
+            self.assertEqual(code, 0, 'string_equals(%s, %s!!) should return 0' % (repr(input), repr(input)))
+
+
+
 if __name__ == "__main__":
-    found_error = False
-    for t in tests:
-        for arg in inputs[t.name]:
-            if not found_error:
-                try:
-                    print '          testing', t.name,'on "'+ arg +'"'
-                    res = t.perform(arg)
-                    if res: 
-                        print '  [', colored('  ok  ', 'green'), ']'
-                    else:
-                        print '* [ ', colored('fail', 'red'),  ']'
-                        found_error = True
-                except:
-                    print '* [ ', colored('fail', 'red'),  '] with exception' , sys.exc_info()[0]
-                    raise
-                    found_error = True
-    if found_error:
-        sys.exit('Not all tests have been passed')
-    else:
-        print colored( "Good work, all tests are passed", 'green')
+    with open('report.xml', 'w') as report:
+        unittest.main(testRunner=xmlrunner.XMLTestRunner(output=report), failfast=False, buffer=False, catchbreak=False)
