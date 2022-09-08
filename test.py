@@ -108,8 +108,10 @@ class IOLibraryTest(unittest.TestCase):
         try:
             p = Popen(['./'+fname], shell=None, stdin=PIPE, stdout=PIPE)
             (output, _) = p.communicate(input)
+            self.assertNotEqual(p.returncode, -11, 'segmentation fault')
             return (output, p.returncode)
         except CalledProcessError as exc:
+            self.assertNotEqual(exc.returncode, -11, 'segmentation fault')
             return (exc.output, exc.returncode)
 
     def perform(self, fname, text, input):
