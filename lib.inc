@@ -1,7 +1,6 @@
 section .text
  
  
- 
 ; Принимает код возврата и завершает текущий процесс
 exit:
     mov rax, 60
@@ -13,9 +12,10 @@ string_length:
     xor rax, rax
 
     .loop:
-        cmp byte[rdi + rax], 0
+        cmp byte[rdi], 0
         jz .exit
         inc rax
+        inc rdi
         jmp .loop
 
     .exit:
@@ -45,10 +45,10 @@ print_char:
     mov rax, 1
     push rdi
     mov rsi, rsp
+    pop rdi
     mov rdi, 1
     mov rdx, 1
     syscall
-    pop rdi
     ret
 
 
@@ -56,7 +56,7 @@ print_char:
 print_newline:
     mov rax, 1
     mov rdi, 1
-    push '\n'
+    push 0x0A
     mov rsi, rsp
     pop rdx
     mov rdx, 1
@@ -69,10 +69,10 @@ print_newline:
 ; Не забудьте перевести цифры в их ASCII коды.
 print_uint:
     mov rax, rdi
-    mov rcx, '\n'
+    mov rcx, 0xA
     mov r9, 1
     .dec_loop:
-        cmp rax, '\n'
+        cmp rax, 0xA
         jb .to_out_loop
         inc r9
         xor rdx, rdx
@@ -86,7 +86,7 @@ print_uint:
     .out_loop:
         dec r9
         pop rdi
-        add rdi, '0'
+        add rdi, 0x30
         call print_char
         cmp r9, 0
         jz .exit
@@ -107,7 +107,7 @@ print_int:
 
     .if_sign:
         push rdi
-        mov rdi, '-'
+        mov rdi, 0x2D
         call print_char
         pop rdi
         neg rdi
@@ -121,7 +121,7 @@ string_equals:
         mov al, [rsi]
         cmp [rdi], al
         jnz .strNotEqual
-        cmp byte[rdi], 0
+        cmp byte[rdi], 0x0
         jz  .strEqual
         inc rdi
         inc rsi
@@ -175,19 +175,19 @@ read_word:
         jnz  .middle
 
         .first:
-            cmp rax, ' '
+            cmp rax, 0x20
             jz  .loop
-            cmp rax, '	'
+            cmp rax, 0x9
             jz  .loop
-            cmp rax, '\n'
+            cmp rax, 0xA
             jz  .loop
 
         .middle:
-            cmp rax, ' '
+            cmp rax, 0x20
             jz  .exit_end
-            cmp rax, '	'
+            cmp rax, 0x9
             jz  .exit_end
-            cmp rax, '\n'
+            cmp rax, 0xA
             jz  .exit_end
 
         .length:
@@ -217,17 +217,17 @@ read_word:
 parse_uint:
     xor rax, rax
     xor rcx, rcx
-    mov r8, '\n'
+    mov r8, 0xA
 
     .loop:
         movzx r9, byte[rdi+rcx]
-        cmp r9, '0'
+        cmp r9, 0x30
         jb .exit
-        cmp r9, '9'
+        cmp r9, 0x39
         ja .exit
         mul r8
         add rax, r9
-        sub rax, '0'
+        sub rax, 0x30
         inc rcx
         jmp .loop
 
@@ -245,7 +245,7 @@ parse_uint:
 parse_int:
     xor rax, rax
     xor rdx, rdx
-    cmp byte[rdi], '-'
+    cmp byte[rdi], 0x2D
     jnz parse_uint 
     inc rdi
     call parse_uint
