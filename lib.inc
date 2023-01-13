@@ -56,7 +56,7 @@ print_char:
 print_newline:
     mov rax, 1
     mov rdi, 1
-    push '\n'
+    push 10
     mov rsi, rsp
     pop rdx
     mov rdx, 1
