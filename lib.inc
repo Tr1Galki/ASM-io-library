@@ -69,7 +69,7 @@ print_newline:
 ; Не забудьте перевести цифры в их ASCII коды.
 print_uint:
     mov rax, rdi
-    mov rcx, 10
+    mov rcx, 0xA
     mov r9, 1
     .dec_loop:
         cmp rax, 0xA
@@ -179,7 +179,7 @@ read_word:
             jz  .loop
             cmp rax, '\t'
             jz  .loop
-            cmp rax, '\n'
+            cmp rax, 0xA
             jz  .loop
 
         .middle:
@@ -187,7 +187,7 @@ read_word:
             jz  .exit_end
             cmp rax, '\t'
             jz  .exit_end
-            cmp rax, '\n'
+            cmp rax, 0xA
             jz  .exit_end
 
         .length:
