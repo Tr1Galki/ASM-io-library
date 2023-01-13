@@ -53,14 +53,9 @@ print_char:
 
 ; Переводит строку (выводит символ с кодом 0xA)
 print_newline:
-    mov rax, 1
-    mov rdi, 1
-    push 10
-    mov rsi, rsp
-    pop rdx
-    mov rdx, 1
-    syscall
-    ret
+    mov rdi, '\n'
+    jmp print_char
+
 
 
 ; Выводит беззнаковое 8-байтовое число в десятичном формате 
