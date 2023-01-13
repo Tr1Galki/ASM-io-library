@@ -217,23 +217,24 @@ read_word:
 parse_uint:
     xor rax, rax
     xor rcx, rcx
-    mov r8, '\n'
+    mov r8, 0xA
 
     .loop:
         movzx r9, byte[rdi+rcx]
-        cmp r9, '0'
+        cmp r9, 0x30
         jb .exit
-        cmp r9, '9'
+        cmp r9, 0x39
         ja .exit
         mul r8
         add rax, r9
-        sub rax, '0'
+        sub rax, 0x30
         inc rcx
         jmp .loop
 
     .exit:
         mov rdx, rcx
         ret
+
 
 
 
@@ -245,7 +246,7 @@ parse_uint:
 parse_int:
     xor rax, rax
     xor rdx, rdx
-    cmp byte[rdi], 0x2D
+    cmp byte[rdi], '-'
     jnz parse_uint 
     inc rdi
     call parse_uint
