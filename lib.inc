@@ -12,10 +12,9 @@ string_length:
     xor rax, rax
 
     .loop:
-        cmp byte[rdi], 0
+        cmp byte[rdi + rax], 0
         jz .exit
         inc rax
-        inc rdi
         jmp .loop
 
     .exit:
