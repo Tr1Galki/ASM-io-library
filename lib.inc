@@ -69,7 +69,7 @@ print_newline:
 ; Не забудьте перевести цифры в их ASCII коды.
 print_uint:
     mov rax, rdi
-    mov rcx, '\n'
+    mov rcx, 10
     mov r9, 1
     .dec_loop:
         cmp rax, '\n'
@@ -217,7 +217,7 @@ read_word:
 parse_uint:
     xor rax, rax
     xor rcx, rcx
-    mov r8, 0xA
+    mov r8, 10
 
     .loop:
         movzx r9, byte[rdi+rcx]
