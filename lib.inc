@@ -245,7 +245,7 @@ parse_uint:
 parse_int:
     xor rax, rax
     xor rdx, rdx
-    cmp byte[rdi], '0x2D'
+    cmp byte[rdi], 0x2D
     jnz parse_uint 
     inc rdi
     call parse_uint
