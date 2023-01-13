@@ -72,7 +72,7 @@ print_uint:
     mov rcx, 10
     mov r9, 1
     .dec_loop:
-        cmp rax, '\n'
+        cmp rax, 0xA
         jb .to_out_loop
         inc r9
         xor rdx, rdx
@@ -179,7 +179,7 @@ read_word:
             jz  .loop
             cmp rax, 0x9
             jz  .loop
-            cmp rax, '\n'
+            cmp rax, 0xA
             jz  .loop
 
         .middle:
@@ -187,7 +187,7 @@ read_word:
             jz  .exit_end
             cmp rax, 0x9
             jz  .exit_end
-            cmp rax, '\n'
+            cmp rax, 0xA
             jz  .exit_end
 
         .length:
@@ -227,7 +227,7 @@ parse_uint:
         ja .exit
         mul r8
         add rax, r9
-        sub rax, '0'
+        sub rax, 0x30
         inc rcx
         jmp .loop
 
