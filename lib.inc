@@ -177,7 +177,7 @@ read_word:
         .first:
             cmp rax, ' '
             jz  .loop
-            cmp rax, '  '
+            cmp rax, '\t'
             jz  .loop
             cmp rax, '\n'
             jz  .loop
@@ -185,7 +185,7 @@ read_word:
         .middle:
             cmp rax, ' '
             jz  .exit_end
-            cmp rax, '  '
+            cmp rax, '\t'
             jz  .exit_end
             cmp rax, '\n'
             jz  .exit_end
