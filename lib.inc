@@ -44,10 +44,10 @@ print_char:
     mov rax, 1
     push rdi
     mov rsi, rsp
-    pop rdi
     mov rdi, 1
     mov rdx, 1
     syscall
+    pop rdi
     ret
 
 
