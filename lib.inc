@@ -1,6 +1,7 @@
 section .text
  
  
+ 
 ; Принимает код возврата и завершает текущий процесс
 exit:
     mov rax, 60
@@ -44,10 +45,10 @@ print_char:
     mov rax, 1
     push rdi
     mov rsi, rsp
-    pop rdi
     mov rdi, 1
     mov rdx, 1
     syscall
+    pop rdi
     ret
 
 
@@ -216,24 +217,23 @@ read_word:
 parse_uint:
     xor rax, rax
     xor rcx, rcx
-    mov r8, 0xA
+    mov r8, '\n'
 
     .loop:
         movzx r9, byte[rdi+rcx]
-        cmp r9, 0x30
+        cmp r9, '0'
         jb .exit
-        cmp r9, 0x39
+        cmp r9, '9'
         ja .exit
         mul r8
         add rax, r9
-        sub rax, 0x30
+        sub rax, '0'
         inc rcx
         jmp .loop
 
     .exit:
         mov rdx, rcx
         ret
-
 
 
 
