@@ -87,7 +87,7 @@ print_uint:
         pop rdi
         add rdi, '0'
         call print_char
-        cmp r9, 0
+        test r9, r9
         jz .exit
         jmp .out_loop
     
