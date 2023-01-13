@@ -23,20 +23,15 @@ string_length:
 
 ; Принимает указатель на нуль-терминированную строку, выводит её в stdout
 print_string:
-    mov rax, 1
-    mov rdx, 1
+    push rdi
+    call string_length
+    pop rdi
+    mov rdx, rax
     mov rsi, rdi
+    mov rax, 1
     mov rdi, 1
-
-    .loop:
-        cmp byte[rsi], 0
-        jz .exit
-        syscall
-        inc rsi
-        jmp .loop
-
-    .exit:
-        ret
+    syscall
+    ret
 
 
 ; Принимает код символа и выводит его в stdout
