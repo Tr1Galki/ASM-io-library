@@ -131,7 +131,7 @@ string_equals:
         ret
 
     .strNotEqual:
-        mov rax, 0
+        xor rax, rax
         ret
 
 
@@ -168,9 +168,9 @@ read_word:
         pop rcx
         pop rsi
         pop rdi
-        cmp rax, 0
+        test rax, rax
         jz .exit_end
-        cmp rcx, 0 
+        test rcx, rcx 
         jnz  .middle
 
         .first:
@@ -263,7 +263,7 @@ string_copy:
         jge .len_problem
         mov al, [rdi+rcx]
         mov [rsi+rcx], al
-        cmp al, 0
+        test al, al
         jz .exit
         inc rcx
         jmp .loop
