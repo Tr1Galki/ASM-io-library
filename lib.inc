@@ -56,7 +56,7 @@ print_char:
 print_newline:
     mov rax, 1
     mov rdi, 1
-    push '\n'
+    push 0x0A
     mov rsi, rsp
     pop rdx
     mov rdx, 1
@@ -69,10 +69,10 @@ print_newline:
 ; Не забудьте перевести цифры в их ASCII коды.
 print_uint:
     mov rax, rdi
-    mov rcx, '\n'
+    mov rcx, 0xA
     mov r9, 1
     .dec_loop:
-        cmp rax, '\n'
+        cmp rax, 0xA
         jb .to_out_loop
         inc r9
         xor rdx, rdx
@@ -86,7 +86,7 @@ print_uint:
     .out_loop:
         dec r9
         pop rdi
-        add rdi, 0x30
+        add rdi, '0'
         call print_char
         cmp r9, 0
         jz .exit
@@ -179,7 +179,7 @@ read_word:
             jz  .loop
             cmp rax, 0x9
             jz  .loop
-            cmp rax, '\n'
+            cmp rax, 0xA
             jz  .loop
 
         .middle:
@@ -187,7 +187,7 @@ read_word:
             jz  .exit_end
             cmp rax, 0x9
             jz  .exit_end
-            cmp rax, '\n'
+            cmp rax, 0xA
             jz  .exit_end
 
         .length:
@@ -217,7 +217,7 @@ read_word:
 parse_uint:
     xor rax, rax
     xor rcx, rcx
-    mov r8, '\n'
+    mov r8, 0xA
 
     .loop:
         movzx r9, byte[rdi+rcx]
