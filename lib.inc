@@ -107,7 +107,7 @@ print_int:
 
     .if_sign:
         push rdi
-        mov rdi, 0x2D
+        mov rdi, '-'
         call print_char
         pop rdi
         neg rdi
@@ -121,7 +121,7 @@ string_equals:
         mov al, [rsi]
         cmp [rdi], al
         jnz .strNotEqual
-        cmp byte[rdi], 0x0
+        cmp byte[rdi], 0
         jz  .strEqual
         inc rdi
         inc rsi
@@ -175,7 +175,7 @@ read_word:
         jnz  .middle
 
         .first:
-            cmp rax, 0x20
+            cmp rax, ' '
             jz  .loop
             cmp rax, 0x9
             jz  .loop
@@ -183,7 +183,7 @@ read_word:
             jz  .loop
 
         .middle:
-            cmp rax, 0x20
+            cmp rax, ' '
             jz  .exit_end
             cmp rax, 0x9
             jz  .exit_end
@@ -221,13 +221,13 @@ parse_uint:
 
     .loop:
         movzx r9, byte[rdi+rcx]
-        cmp r9, 0x30
+        cmp r9, '0'
         jb .exit
-        cmp r9, 0x39
+        cmp r9, '9'
         ja .exit
         mul r8
         add rax, r9
-        sub rax, 0x30
+        sub rax, '0'
         inc rcx
         jmp .loop
 
@@ -245,7 +245,7 @@ parse_uint:
 parse_int:
     xor rax, rax
     xor rdx, rdx
-    cmp byte[rdi], 0x2D
+    cmp byte[rdi], '-'
     jnz parse_uint 
     inc rdi
     call parse_uint
